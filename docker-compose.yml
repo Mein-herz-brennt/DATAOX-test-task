@@ -1,27 +1,32 @@
-version: '3.9'
-
 services:
   db:
     image: postgres:16
-    container_name: autoria_db
+    container_name: autoria-db
     restart: always
     environment:
-      POSTGRES_USER: autoria_user
-      POSTGRES_PASSWORD: strongpassword
-      POSTGRES_DB: autoria_db
+      POSTGRES_USER: autoria
+      POSTGRES_PASSWORD: autoria
+      POSTGRES_DB: autoria
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - autoria-network
 
-  autoriaParser:
+  autoriaparser:
     build: .
-    container_name: autoriaParser_app
+    container_name: autoriaparser-app
     restart: always
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg2://autoria_user:strongpassword@db:5432/autoria_db
+      DATABASE_URL: postgresql+pg8000://autoria:autoria@db:5435/autoria
     depends_on:
       - db
     volumes:
@@ -29,3 +34,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+
+networks:
+  autoria-network:
+    driver: bridge

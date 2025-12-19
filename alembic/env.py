@@ -1,35 +1,38 @@
-import sys
 import os
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine
 from alembic import context
-from models.car import Base as CarBase
-from models.car_link import Base as CarLinkBase
-from decouple import config as project_config
 
+# додаємо шлях до модулів
+import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from decouple import config
 
-config = context.config
+from models.car import Base as CarBase
+from models.car_link import Base as CarLinkBase
 
-fileConfig(config.config_file_name)
-
+# metadata всіх моделей
 target_metadata = [CarBase.metadata, CarLinkBase.metadata]
 
+# читаємо DATABASE_URL через Decouple
+DATABASE_URL = config("DATABASE_URL")
+print(f"DEBUG: Connecting to {DATABASE_URL}")
+# logging
+fileConfig(context.config.config_file_name)
 
 def run_migrations_offline():
-    url = project_config("DATABASE_URL")
-    context.configure(url=url, target_metadata=target_metadata, literal_binds=True)
+    context.configure(
+        url=DATABASE_URL,
+        target_metadata=target_metadata,
+        literal_binds=True,
+    )
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online():
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix='sqlalchemy.',
-        poolclass=pool.NullPool,
-    )
+    connectable = create_engine(DATABASE_URL)
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
